@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Startup Animation Prototype</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main class="intro-app" aria-label="Startup animation prototype">
+      <!-- Central loading mark: dot + SVG ring controlled by GSAP. -->
+      <section class="loader-stage" aria-label="Loading">
+        <div class="loader-mark">
+          <span class="loader-glow" aria-hidden="true"></span>
+          <svg class="loader-ring" viewBox="0 0 64 64" aria-hidden="true">
+            <circle class="ring-track" cx="32" cy="32" r="25"></circle>
+            <circle class="ring-progress" cx="32" cy="32" r="25"></circle>
+            <circle class="ring-complete" cx="32" cy="32" r="25"></circle>
+          </svg>
+          <span class="loader-dot" aria-hidden="true"></span>
+        </div>
+        <p class="continue-hint">Click to continue</p>
+      </section>
+
+      <!-- Browser-style preview window. The final site content appears inside it. -->
+      <section class="browser-frame" aria-label="Website preview">
+        <div class="browser-bar" aria-hidden="true">
+          <div class="window-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="address-line"></div>
+        </div>
+
+        <div class="browser-viewport">
+          <div class="black-preview" aria-hidden="true"></div>
+          <div class="white-wipe" aria-hidden="true"></div>
+
+          <!-- Replace this placeholder with your real website content later. -->
+          <article class="site-content">
+            <header class="content-header">
+              <div class="brand-placeholder"></div>
+              <div class="nav-placeholders" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+            </header>
+
+            <section class="hero-placeholder">
+              <p class="eyebrow">Creative Opening</p>
+              <h1>Your Content Here</h1>
+              <p class="hero-copy">
+                Replace this clean structure with your final website content.
+              </p>
+              <div class="hero-actions" aria-hidden="true">
+                <span></span>
+                <span></span>
+              </div>
+            </section>
+
+            <section class="content-grid" aria-label="Content placeholders">
+              <div class="image-placeholder"></div>
+              <div class="card-stack">
+                <div class="placeholder-card"></div>
+                <div class="placeholder-card"></div>
+                <div class="placeholder-card"></div>
+              </div>
+            </section>
+          </article>
+        </div>
+      </section>
+
+      <button class="replay-button" type="button" aria-label="Replay animation">
+        Replay
+      </button>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <script src="./script.js"></script>
+  </body>
+</html>
