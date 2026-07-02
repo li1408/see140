@@ -17,6 +17,13 @@ type UseThreeSceneOptions = {
   onResize: (width: number, height: number) => void;
 };
 
+const WIND_PARTICLE_COUNT = 560;
+const WIND_PARTICLE_BASE_OPACITY = 0.24;
+const WIND_PARTICLE_ACTIVE_OPACITY = 0.54;
+const WIND_PARTICLE_BASE_SIZE = 2.3;
+const WIND_PARTICLE_ACTIVE_SIZE = 1.9;
+const WIND_PARTICLE_RESPONSE_SCALE = 0.082;
+
 export function useThreeScene({
   containerRef,
   themeMode,
@@ -135,12 +142,13 @@ export function useThreeScene({
       new THREE.BufferGeometry(),
       new THREE.PointsMaterial({
         color: palette.particle,
-        size: 2,
+        size: WIND_PARTICLE_BASE_SIZE,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.42,
+        depthWrite: false,
       })
     );
-    const particleCount = 260;
+    const particleCount = WIND_PARTICLE_COUNT;
     const positions = new Float32Array(particleCount * 3);
     for (let i = 0; i < particleCount; i++) {
       positions[i * 3] =
@@ -193,11 +201,51 @@ export function useThreeScene({
       );
 
       const attrs = driftParticles.geometry.getAttribute("position");
+      const windMagnitude = Math.hypot(
+        windStateRef.current.x,
+        windStateRef.current.y,
+        windStateRef.current.z
+      );
+      const windVisualStrength = Math.min(windMagnitude / 6200, 1);
+      const particleIdleDrift = 4;
       for (let i = 0; i < attrs.count; i++) {
-        const y = attrs.getY(i) - deltaSeconds * 10;
-        attrs.setY(i, y < three.bottomWall ? three.topWall : y);
+        const turbulence =
+          Math.sin(now * 0.0017 + i * 12.9898) * windVisualStrength * 16;
+        const crossTurbulence =
+          Math.cos(now * 0.0013 + i * 7.233) * windVisualStrength * 10;
+        let x =
+          attrs.getX(i) +
+          (windStateRef.current.x * WIND_PARTICLE_RESPONSE_SCALE +
+            turbulence) *
+            deltaSeconds;
+        let y =
+          attrs.getY(i) +
+          (windStateRef.current.y * WIND_PARTICLE_RESPONSE_SCALE * 0.5 +
+            crossTurbulence) *
+            deltaSeconds -
+          deltaSeconds * particleIdleDrift;
+        let z =
+          attrs.getZ(i) +
+          (windStateRef.current.z * WIND_PARTICLE_RESPONSE_SCALE +
+            crossTurbulence * 0.6) *
+            deltaSeconds;
+
+        if (x < three.leftWall) x = three.rightWall;
+        if (x > three.rightWall) x = three.leftWall;
+        if (y < three.bottomWall) y = three.topWall;
+        if (y > three.topWall) y = three.bottomWall;
+        if (z < three.backWall) z = three.frontWall;
+        if (z > three.frontWall) z = three.backWall;
+
+        attrs.setXYZ(i, x, y, z);
       }
       attrs.needsUpdate = true;
+      driftParticles.material.opacity =
+        WIND_PARTICLE_BASE_OPACITY +
+        windVisualStrength * WIND_PARTICLE_ACTIVE_OPACITY;
+      driftParticles.material.size =
+        WIND_PARTICLE_BASE_SIZE +
+        windVisualStrength * WIND_PARTICLE_ACTIVE_SIZE;
 
       three.renderer.render(three.scene, three.camera);
       three.animationFrame = requestAnimationFrame(animate);

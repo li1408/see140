@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export type HoldActionType = "clear" | "theme";
+export type HoldActionType = "clear" | "mode" | "wind";
 export type Locale = "en" | "zh" | "ja";
 export type ThemeMode = "light" | "dark";
 

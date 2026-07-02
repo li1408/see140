@@ -3,6 +3,7 @@ import type { BalloonState, ThreeState, PinchReleaseState, DrawPoint, BalloonStr
 import {
   CLEAR_PARTICLE_GRAVITY,
   CLEAR_PARTICLE_LIFETIME_MS,
+  CLEAR_PARTICLES_PER_POINT,
   CLEAR_PARTICLE_SAMPLE_STEP,
   CLEAR_PARTICLE_SIZE,
   CLEAR_PARTICLE_SPREAD,
@@ -197,8 +198,16 @@ function emitClearParticles(strokes: BalloonStroke[], scene: THREE.Scene): void 
   strokes.forEach((stroke) => {
     stroke.points.forEach((point, index) => {
       if (index % CLEAR_PARTICLE_SAMPLE_STEP !== 0) return;
-      particlePositions.push(point.x, point.y, point.z);
-      particleColors.push(stroke.color.r, stroke.color.g, stroke.color.b);
+      for (let burst = 0; burst < CLEAR_PARTICLES_PER_POINT; burst++) {
+        const scatterAngle = Math.random() * Math.PI * 2;
+        const scatterRadius = Math.random() * CLEAR_PARTICLE_SIZE * 1.6;
+        particlePositions.push(
+          point.x + Math.cos(scatterAngle) * scatterRadius,
+          point.y + (Math.random() - 0.5) * scatterRadius,
+          point.z + Math.sin(scatterAngle) * scatterRadius
+        );
+        particleColors.push(stroke.color.r, stroke.color.g, stroke.color.b);
+      }
     });
   });
 
@@ -212,8 +221,8 @@ function emitClearParticles(strokes: BalloonStroke[], scene: THREE.Scene): void 
 
   for (let i = 0; i < particleCount; i++) {
     const angle = Math.random() * Math.PI * 2;
-    const vertical = (Math.random() - 0.22) * CLEAR_PARTICLE_SPREAD;
-    const lateral = CLEAR_PARTICLE_SPREAD * (0.28 + Math.random() * 0.72);
+    const vertical = (Math.random() - 0.12) * CLEAR_PARTICLE_SPREAD;
+    const lateral = CLEAR_PARTICLE_SPREAD * (0.36 + Math.random() * 0.9);
     velocities[i * 3] = Math.cos(angle) * lateral;
     velocities[i * 3 + 1] = vertical;
     velocities[i * 3 + 2] = Math.sin(angle) * lateral;
@@ -258,7 +267,14 @@ function emitClearParticles(strokes: BalloonStroke[], scene: THREE.Scene): void 
       );
     }
     positionAttribute.needsUpdate = true;
-    material.opacity = Math.max(0, 1 - age / CLEAR_PARTICLE_LIFETIME_MS);
+    const holdMs = CLEAR_PARTICLE_LIFETIME_MS * 0.22;
+    const fadeProgress = Math.max(
+      0,
+      (age - holdMs) / (CLEAR_PARTICLE_LIFETIME_MS - holdMs)
+    );
+    const expansion = Math.min(age / 320, 1);
+    material.opacity = Math.max(0, 1 - fadeProgress);
+    material.size = CLEAR_PARTICLE_SIZE * (1 + expansion * 0.26);
 
     if (age < CLEAR_PARTICLE_LIFETIME_MS) {
       requestAnimationFrame(animate);

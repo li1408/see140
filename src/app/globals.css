@@ -230,7 +230,7 @@ button {
   bottom: 22px;
   z-index: 45;
   display: grid;
-  grid-template-columns: repeat(3, auto);
+  grid-template-columns: repeat(4, auto);
   align-items: end;
   gap: 10px;
   padding: 10px;
@@ -304,6 +304,40 @@ button {
 .panel-switch span:last-child {
   color: inherit;
   font-weight: 700;
+}
+
+.wind-strength-block {
+  min-width: 176px;
+}
+
+.range-control {
+  display: grid;
+  grid-template-columns: 1fr 42px;
+  align-items: center;
+  gap: 9px;
+  min-height: 42px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--panel-strong) 72%, transparent);
+}
+
+.range-control input {
+  width: 100%;
+  accent-color: var(--control-active);
+}
+
+.range-control input:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.range-control span {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .startup-intro {

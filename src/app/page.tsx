@@ -15,6 +15,12 @@ import type {
   PinchReleaseState,
 } from "@/lib/types";
 
+const HOLD_LABELS: Record<HoldActionType, string> = {
+  clear: "Clear",
+  mode: "Mode",
+  wind: "Wind",
+};
+
 export default function Home() {
   const [canvasSize, setCanvasSize] = useState([0, 0]);
   const [holdCountdown, setHoldCountdown] = useState<{
@@ -42,8 +48,11 @@ export default function Home() {
     setEnableBalloonFall,
     enableGestureWind,
     setEnableGestureWind,
+    windStrength,
+    setWindStrength,
     enableBalloonFallRef,
     enableGestureWindRef,
+    windStrengthRef,
     windStateRef,
     windTargetRef,
     waveGestureStateRef,
@@ -92,7 +101,14 @@ export default function Home() {
     pinchReleaseStateRef,
     previousDrawPointRef,
     enableGestureWindRef,
+    windStrengthRef,
     calibrationResetToken,
+    onToggleMode: () => setEnableBalloonFall((prev) => !prev),
+    onToggleWind: () => {
+      if (enableBalloonFallRef.current) {
+        setEnableGestureWind((prev) => !prev);
+      }
+    },
     setHoldCountdown,
     setCalibrationUiState: setCalibrationState,
   });
@@ -208,6 +224,23 @@ export default function Home() {
           <span>Wind</span>
           <span>{enableGestureWind ? "On" : "Off"}</span>
         </button>
+
+        <div className="control-block wind-strength-block">
+          <span className="control-label">Strength</span>
+          <label className="range-control">
+            <input
+              type="range"
+              min="0.8"
+              max="4"
+              step="0.1"
+              value={windStrength}
+              disabled={!enableBalloonFall || !enableGestureWind}
+              aria-label="Wind strength"
+              onChange={(event) => setWindStrength(Number(event.target.value))}
+            />
+            <span>{windStrength.toFixed(1)}x</span>
+          </label>
+        </div>
       </aside>
 
       {calibrationState.active && calibrationState.target && (
@@ -250,7 +283,7 @@ export default function Home() {
             <span>{holdCountdown.seconds}</span>
           </div>
           <span className="hold-label">
-            {holdCountdown.action === "clear" ? "Clear" : "Confirm"}
+            {HOLD_LABELS[holdCountdown.action]}
           </span>
         </div>
       )}

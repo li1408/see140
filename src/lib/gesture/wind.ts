@@ -3,14 +3,15 @@ import {
   SCALED_MAX_GESTURE_WIND,
   SCALED_MAX_GESTURE_WIND_DELTA,
   SCALED_GESTURE_WAVE_TO_WIND,
-  SCALED_OPEN_PALM_POSE_BIAS,
   SCALED_MAX_GESTURE_VERTICAL_WIND,
   SCALED_MAX_GESTURE_VERTICAL_WIND_DELTA,
-  SCALED_OPEN_PALM_POSE_BIAS_Y,
   SCALED_MAX_GESTURE_DEPTH_WIND,
   SCALED_MAX_GESTURE_DEPTH_WIND_DELTA,
-  SCALED_OPEN_PALM_POSE_BIAS_Z,
 } from "../constants";
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(Math.max(value, min), max);
+}
 
 export function updateWindFromWave(
   wristX: number,
@@ -20,58 +21,63 @@ export function updateWindFromWave(
   canvasHeight: number,
   waveState: WaveGestureState,
   windTarget: WindVector,
-  now: number
+  now: number,
+  windStrength = 1
 ): void {
+  const strength = clamp(windStrength, 0.4, 4);
+  const maxWindX = SCALED_MAX_GESTURE_WIND * strength;
+  const maxWindY = SCALED_MAX_GESTURE_VERTICAL_WIND * strength;
+  const maxWindZ = SCALED_MAX_GESTURE_DEPTH_WIND * strength;
+  const normalizedX = clamp((wristX - canvasWidth / 2) / (canvasWidth / 2), -1, 1);
+  const normalizedY = clamp((wristY - canvasHeight / 2) / (canvasHeight / 2), -1, 1);
+  const normalizedZ = clamp(wristZ * 2, -1, 1);
+  const poseWind = {
+    // Wind originates from the palm side: left palm pushes right, right palm pushes left.
+    x: -normalizedX * maxWindX * 0.92,
+    y: -normalizedY * maxWindY * 0.5,
+    z: -normalizedZ * maxWindZ * 0.46,
+  };
+
+  let windPulseX = 0;
+  let windPulseY = 0;
+  let windPulseZ = 0;
+
   if (!waveState.active) {
     waveState.active = true;
     waveState.lastX = wristX;
     waveState.lastY = wristY;
     waveState.lastZ = wristZ;
     waveState.lastTime = now;
-    return;
-  }
+  } else {
+    const deltaX = wristX - waveState.lastX;
+    const deltaY = wristY - waveState.lastY;
+    const deltaZ = wristZ - waveState.lastZ;
+    const deltaTime = (now - waveState.lastTime) / 1000;
 
-  const deltaX = wristX - waveState.lastX;
-  const deltaY = wristY - waveState.lastY;
-  const deltaZ = wristZ - waveState.lastZ;
-  const deltaTime = (now - waveState.lastTime) / 1000;
+    if (deltaTime > 0) {
+      const speedX = deltaX / deltaTime;
+      const speedY = deltaY / deltaTime;
+      const speedZ = deltaZ / deltaTime;
 
-  if (deltaTime > 0) {
-    const speedX = deltaX / deltaTime;
-    const speedY = deltaY / deltaTime;
-    const speedZ = deltaZ / deltaTime;
-
-    const windDeltaX =
-      Math.sign(speedX) *
-      Math.min(
-        SCALED_MAX_GESTURE_WIND_DELTA,
-        Math.abs(speedX) * SCALED_GESTURE_WAVE_TO_WIND
-      );
-    const windDeltaY =
-      -Math.sign(speedY) *
-      Math.min(
-        SCALED_MAX_GESTURE_VERTICAL_WIND_DELTA,
-        Math.abs(speedY) * SCALED_GESTURE_WAVE_TO_WIND
-      );
-    const windDeltaZ =
-      -Math.sign(speedZ) *
-      Math.min(
-        SCALED_MAX_GESTURE_DEPTH_WIND_DELTA,
-        Math.abs(speedZ) * SCALED_GESTURE_WAVE_TO_WIND
-      );
-
-    windTarget.x = Math.max(
-      -SCALED_MAX_GESTURE_WIND,
-      Math.min(SCALED_MAX_GESTURE_WIND, windTarget.x + windDeltaX)
-    );
-    windTarget.y = Math.max(
-      -SCALED_MAX_GESTURE_VERTICAL_WIND,
-      Math.min(SCALED_MAX_GESTURE_VERTICAL_WIND, windTarget.y + windDeltaY)
-    );
-    windTarget.z = Math.max(
-      -SCALED_MAX_GESTURE_DEPTH_WIND,
-      Math.min(SCALED_MAX_GESTURE_DEPTH_WIND, windTarget.z + windDeltaZ)
-    );
+      windPulseX =
+        Math.sign(speedX) *
+        Math.min(
+          SCALED_MAX_GESTURE_WIND_DELTA * strength,
+          Math.abs(speedX) * SCALED_GESTURE_WAVE_TO_WIND * strength
+        );
+      windPulseY =
+        -Math.sign(speedY) *
+        Math.min(
+          SCALED_MAX_GESTURE_VERTICAL_WIND_DELTA * strength,
+          Math.abs(speedY) * SCALED_GESTURE_WAVE_TO_WIND * strength
+        );
+      windPulseZ =
+        -Math.sign(speedZ) *
+        Math.min(
+          SCALED_MAX_GESTURE_DEPTH_WIND_DELTA * strength,
+          Math.abs(speedZ) * SCALED_GESTURE_WAVE_TO_WIND * strength
+        );
+    }
   }
 
   waveState.lastX = wristX;
@@ -79,29 +85,7 @@ export function updateWindFromWave(
   waveState.lastZ = wristZ;
   waveState.lastTime = now;
 
-  // Pose-based steady wind bias
-  windTarget.x = Math.max(
-    -SCALED_MAX_GESTURE_WIND,
-    Math.min(
-      SCALED_MAX_GESTURE_WIND,
-      windTarget.x +
-        ((wristX - canvasWidth / 2) / canvasWidth) * SCALED_OPEN_PALM_POSE_BIAS
-    )
-  );
-  windTarget.y = Math.max(
-    -SCALED_MAX_GESTURE_VERTICAL_WIND,
-    Math.min(
-      SCALED_MAX_GESTURE_VERTICAL_WIND,
-      windTarget.y +
-        ((canvasHeight / 2 - wristY) / canvasHeight) *
-          SCALED_OPEN_PALM_POSE_BIAS_Y
-    )
-  );
-  windTarget.z = Math.max(
-    -SCALED_MAX_GESTURE_DEPTH_WIND,
-    Math.min(
-      SCALED_MAX_GESTURE_DEPTH_WIND,
-      windTarget.z - wristZ * SCALED_OPEN_PALM_POSE_BIAS_Z
-    )
-  );
+  windTarget.x = clamp(poseWind.x + windPulseX, -maxWindX, maxWindX);
+  windTarget.y = clamp(poseWind.y + windPulseY, -maxWindY, maxWindY);
+  windTarget.z = clamp(poseWind.z + windPulseZ, -maxWindZ, maxWindZ);
 }

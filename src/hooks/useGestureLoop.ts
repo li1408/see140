@@ -22,6 +22,7 @@ import {
   MAX_VIEW_SCALE,
   MIDDLE_FINGER_MCP_INDEX,
   MIN_VIEW_SCALE,
+  MODE_TOGGLE_GESTURES,
   OPEN_PALM_GESTURES,
   PINCH_OFF_RATIO_THRESHOLD,
   PINCH_ON_RATIO_THRESHOLD,
@@ -34,6 +35,7 @@ import {
 import { getPinchRatio } from "@/lib/gesture/pinch";
 import { updateWindFromWave } from "@/lib/gesture/wind";
 import { updateHoldGesture, clearHoldCountdown } from "@/lib/gesture/hold";
+import { isMiddleFingerOnlyGesture } from "@/lib/gesture/fingers";
 import { drawLandmarks } from "@/lib/gesture/landmarks";
 import {
   applyCalibrationTransform,
@@ -61,7 +63,10 @@ type UseGestureLoopOptions = {
   pinchReleaseStateRef: MutableRefObject<PinchReleaseState>;
   previousDrawPointRef: MutableRefObject<DrawPoint>;
   enableGestureWindRef: MutableRefObject<boolean>;
+  windStrengthRef: MutableRefObject<number>;
   calibrationResetToken: number;
+  onToggleMode: () => void;
+  onToggleWind: () => void;
   setHoldCountdown: (
     value: { action: HoldActionType; seconds: number } | null
   ) => void;
@@ -276,12 +281,17 @@ export function useGestureLoop({
   pinchReleaseStateRef,
   previousDrawPointRef,
   enableGestureWindRef,
+  windStrengthRef,
   calibrationResetToken,
+  onToggleMode,
+  onToggleWind,
   setHoldCountdown,
   setCalibrationUiState,
 }: UseGestureLoopOptions): void {
   const setHoldCountdownRef = useRef(setHoldCountdown);
   const setCalibrationUiStateRef = useRef(setCalibrationUiState);
+  const onToggleModeRef = useRef(onToggleMode);
+  const onToggleWindRef = useRef(onToggleWind);
   const pinchTrackersRef = useRef<TrackedPinch[]>([
     createTrackedPinch(),
     createTrackedPinch(),
@@ -303,6 +313,14 @@ export function useGestureLoop({
   useEffect(() => {
     setCalibrationUiStateRef.current = setCalibrationUiState;
   }, [setCalibrationUiState]);
+
+  useEffect(() => {
+    onToggleModeRef.current = onToggleMode;
+  }, [onToggleMode]);
+
+  useEffect(() => {
+    onToggleWindRef.current = onToggleWind;
+  }, [onToggleWind]);
 
   useEffect(() => {
     pendingCalibrationResetRef.current = true;
@@ -487,6 +505,8 @@ export function useGestureLoop({
 
           let openPalmDetected = false;
           let fistCount = 0;
+          let victoryDetected = false;
+          let middleOnlyCount = 0;
 
           visibleHands.forEach((landmarks, handIndex) => {
             const handGestures = result.gestures?.[handIndex] ?? [];
@@ -494,8 +514,14 @@ export function useGestureLoop({
             openPalmDetected =
               openPalmDetected ||
               categories.some((c) => OPEN_PALM_GESTURES.includes(c));
+            victoryDetected =
+              victoryDetected ||
+              categories.some((c) => MODE_TOGGLE_GESTURES.includes(c));
             if (categories.some((c) => FIST_GESTURES.includes(c))) {
               fistCount += 1;
+            }
+            if (isMiddleFingerOnlyGesture(landmarks)) {
+              middleOnlyCount += 1;
             }
             drawLandmarks(
               landmarks,
@@ -510,6 +536,10 @@ export function useGestureLoop({
           const primaryTracker = selectPrimaryTracker(trackedHands);
           const three = threeRef.current;
           const nowMs = performance.now();
+          const clearDetected = fistCount >= 2;
+          const windToggleDetected = middleOnlyCount >= 2;
+          const modeToggleDetected =
+            victoryDetected && !clearDetected && !windToggleDetected;
 
           if (calibrationSession.active) {
             if (primaryTracker?.active) {
@@ -601,7 +631,7 @@ export function useGestureLoop({
           } else {
             zoomStateRef.current.active = false;
             const drawHand = activePinches[0];
-            const canDraw = Boolean(drawHand) && fistCount === 0;
+            const canDraw = Boolean(drawHand) && !clearDetected;
 
             if (canDraw && drawHand && three) {
               if (
@@ -662,7 +692,8 @@ export function useGestureLoop({
                 height,
                 waveGestureStateRef.current,
                 windTargetRef.current,
-                nowMs
+                nowMs,
+                windStrengthRef.current
               );
             }
           } else {
@@ -671,7 +702,7 @@ export function useGestureLoop({
 
           updateHoldGesture(
             "clear",
-            fistCount >= 2,
+            clearDetected,
             nowMs,
             holdStateRef.current,
             setHoldCountdownRef.current,
@@ -686,6 +717,24 @@ export function useGestureLoop({
                 );
               }
             }
+          );
+
+          updateHoldGesture(
+            "wind",
+            windToggleDetected && !clearDetected,
+            nowMs,
+            holdStateRef.current,
+            setHoldCountdownRef.current,
+            () => onToggleWindRef.current()
+          );
+
+          updateHoldGesture(
+            "mode",
+            modeToggleDetected,
+            nowMs,
+            holdStateRef.current,
+            setHoldCountdownRef.current,
+            () => onToggleModeRef.current()
           );
 
           requestAnimationFrame(renderLoop);

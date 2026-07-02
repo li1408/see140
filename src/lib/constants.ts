@@ -74,11 +74,12 @@ export const MAX_VIEW_SCALE = 2.35;
 export const VIEW_SCALE_SMOOTHING = 0.22;
 
 // Clear particles
-export const CLEAR_PARTICLE_LIFETIME_MS = 1200;
-export const CLEAR_PARTICLE_SIZE = 4.2;
-export const CLEAR_PARTICLE_SAMPLE_STEP = 2;
-export const CLEAR_PARTICLE_SPREAD = 180;
-export const CLEAR_PARTICLE_GRAVITY = 260;
+export const CLEAR_PARTICLE_LIFETIME_MS = 1600;
+export const CLEAR_PARTICLE_SIZE = 5.4;
+export const CLEAR_PARTICLE_SAMPLE_STEP = 1;
+export const CLEAR_PARTICLES_PER_POINT = 2;
+export const CLEAR_PARTICLE_SPREAD = 240;
+export const CLEAR_PARTICLE_GRAVITY = 210;
 
 // Wind
 export const GLOBAL_WIND_DECAY = 2.4;
@@ -102,9 +103,10 @@ export const SCALED_OPEN_PALM_POSE_BIAS_Z = SCALED_OPEN_PALM_POSE_BIAS * 0.3;
 // Gesture names
 export const OPEN_PALM_GESTURES = ["Open_Palm", "OpenPalm"];
 export const FIST_GESTURES = ["Closed_Fist", "Fist"];
-export const THEME_TOGGLE_GESTURES = ["Victory", "Thumb_Up", "Thumbs_Up", "ThumbUp"];
+export const MODE_TOGGLE_GESTURES = ["Victory"];
 
 // Hold gesture
 export const GESTURE_HOLD_CONFIRM_MS = 3000;
+export const TOGGLE_GESTURE_HOLD_CONFIRM_MS = 1000;
 export const GESTURE_HOLD_JITTER_GRACE_MS = 180;
 export const JITTER_GRACE_SECONDS_TEXT = (GESTURE_HOLD_JITTER_GRACE_MS / 1000).toFixed(2);

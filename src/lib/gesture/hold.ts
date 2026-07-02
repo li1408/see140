@@ -2,11 +2,22 @@ import type { HoldActionType, HoldState } from "../types";
 import {
   GESTURE_HOLD_CONFIRM_MS,
   GESTURE_HOLD_JITTER_GRACE_MS,
+  TOGGLE_GESTURE_HOLD_CONFIRM_MS,
 } from "../constants";
 
 type SetHoldCountdown = (
   value: { action: HoldActionType; seconds: number } | null
 ) => void;
+
+function getHoldConfirmMs(action: HoldActionType): number {
+  return action === "clear"
+    ? GESTURE_HOLD_CONFIRM_MS
+    : TOGGLE_GESTURE_HOLD_CONFIRM_MS;
+}
+
+function getInitialHoldSecond(action: HoldActionType): number {
+  return Math.ceil(getHoldConfirmMs(action) / 1000);
+}
 
 export function clearHoldCountdown(
   holdState: HoldState,
@@ -44,16 +55,17 @@ export function updateHoldGesture(
     }
 
     const elapsed = nowMs - holdState.startedAt;
+    const confirmMs = getHoldConfirmMs(action);
     const remainSeconds = Math.max(
       1,
-      Math.ceil((GESTURE_HOLD_CONFIRM_MS - elapsed) / 1000)
+      Math.ceil((confirmMs - elapsed) / 1000)
     );
     if (holdState.lastShownSecond !== remainSeconds) {
       holdState.lastShownSecond = remainSeconds;
       setHoldCountdown({ action, seconds: remainSeconds });
     }
 
-    if (elapsed >= GESTURE_HOLD_CONFIRM_MS) {
+    if (elapsed >= confirmMs) {
       holdState.rearmBlockedAction = action;
       clearHoldCountdown(holdState, setHoldCountdown);
       onConfirm();
@@ -70,6 +82,6 @@ export function updateHoldGesture(
   holdState.token += 1;
   holdState.startedAt = nowMs;
   holdState.pendingLostAt = null;
-  holdState.lastShownSecond = 3;
-  setHoldCountdown({ action, seconds: 3 });
+  holdState.lastShownSecond = getInitialHoldSecond(action);
+  setHoldCountdown({ action, seconds: getInitialHoldSecond(action) });
 }
